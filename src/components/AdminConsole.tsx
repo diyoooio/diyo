@@ -39,7 +39,9 @@ import {
   ArrowDown,
   MessageSquare,
   SlidersHorizontal,
-  CheckCircle2
+  CheckCircle2,
+  Bell,
+  BellRing
 } from 'lucide-react';
 import { Project, PricingPlan, Message, Client, Invitation, Invoice, Ticket, ActivityLog } from '../types';
 import { downloadInvoicePDF } from '../utils/pdfGenerator';
@@ -121,6 +123,43 @@ export const AdminConsole: React.FC = () => {
   // Audit system states
   const [auditSearch, setAuditSearch] = useState('');
   const [auditCategory, setAuditCategory] = useState<'all' | 'bulk' | 'client' | 'email' | 'others'>('all');
+
+  // New message notification tracking state
+  const [isNotifDropdownOpen, setIsNotifDropdownOpen] = useState(false);
+  const [jiggleBell, setJiggleBell] = useState(false);
+  const [notifHistory, setNotifHistory] = useState<string[]>(() => {
+    return messages.filter(m => m.unread).map(m => m.id);
+  });
+
+  useEffect(() => {
+    const currentUnread = messages.filter(m => m.unread);
+    const currentUnreadIds = currentUnread.map(m => m.id);
+    
+    // Check for genuinely new unread messages
+    const newUnreads = currentUnread.filter(m => !notifHistory.includes(m.id));
+    
+    if (newUnreads.length > 0) {
+      setJiggleBell(true);
+      const timer = setTimeout(() => setJiggleBell(false), 1200);
+
+      newUnreads.forEach(newMsg => {
+        triggerToast(`New Live Inquiry from ${newMsg.senderName || 'Anonymous Client'}`);
+      });
+
+      setNotifHistory(prev => {
+        const next = [...prev];
+        newUnreads.forEach(m => {
+          if (!next.includes(m.id)) next.push(m.id);
+        });
+        return next;
+      });
+
+      return () => clearTimeout(timer);
+    } else {
+      // Sync list so that reading/deleting updates the state without alarming the bell
+      setNotifHistory(currentUnreadIds);
+    }
+  }, [messages]);
 
   const filteredAudits = activities.filter(act => {
     // 1. Keyword search check
@@ -897,6 +936,90 @@ export const AdminConsole: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* REAL-TIME CLIENT MESSAGES NOTIFICATION BELL */}
+            <div className="relative">
+              <button
+                onClick={() => setIsNotifDropdownOpen(!isNotifDropdownOpen)}
+                className={`p-2.5 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 text-white/85 hover:text-white transition-all cursor-pointer relative ${
+                  jiggleBell ? 'animate-bounce' : ''
+                }`}
+                title="Telemetry Notification Inbox"
+              >
+                {messages.filter(m => m.unread).length > 0 ? (
+                  <BellRing className="w-4 h-4 text-[#ff7a18]" />
+                ) : (
+                  <Bell className="w-4 h-4 text-white/50" />
+                )}
+                
+                {messages.filter(m => m.unread).length > 0 && (
+                  <span className="absolute top-1 right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ff7a18] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#ff7a18]"></span>
+                  </span>
+                )}
+              </button>
+
+              {/* Notification dropdown popover */}
+              {isNotifDropdownOpen && (
+                <div className="absolute right-0 mt-2.5 w-80 bg-[#121624] border border-white/10 rounded-2xl shadow-2xl p-4 z-50 space-y-3 animate-fadeIn">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                    <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <Shield className="w-3.5 h-3.5 text-[#ff7a18]" /> Telemetry Notifications
+                    </h4>
+                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/5 text-white/60">
+                      {messages.filter(m => m.unread).length} Unread
+                    </span>
+                  </div>
+
+                  <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                    {messages.filter(m => m.unread).length === 0 ? (
+                      <div className="py-6 text-center text-white/30 text-[11px] font-mono">
+                        No unread client messages reported in storage telemetry.
+                      </div>
+                    ) : (
+                      messages.filter(m => m.unread).map((notif) => (
+                        <div
+                          key={notif.id}
+                          onClick={() => {
+                            setAdminTab('messages');
+                            setIsNotifDropdownOpen(false);
+                            triggerToast(`Redirecting you to view message from: ${notif.senderName}`);
+                          }}
+                          className="p-2.5 rounded-xl bg-white/[0.02] border border-[#ff7a18]/10 hover:border-[#ff7a18]/25 hover:bg-white/[0.04] transition-all cursor-pointer text-left space-y-1 block"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-[#ff7a18] truncate max-w-[140px]">
+                              {notif.senderName}
+                            </span>
+                            <span className="text-[8px] font-mono text-white/45">
+                              {notif.relativeTime}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-white/70 line-clamp-2 leading-snug">
+                            {notif.previewText}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {messages.filter(m => m.unread).length > 0 && (
+                    <div className="pt-2 border-t border-white/5">
+                      <button
+                        onClick={() => {
+                          setAdminTab('messages');
+                          setIsNotifDropdownOpen(false);
+                        }}
+                        className="w-full text-center py-1.5 rounded-lg bg-[#ff7a18]/15 border border-[#ff7a18]/20 hover:bg-[#ff7a18]/25 text-[10px] font-mono font-bold text-primary transition-all cursor-pointer"
+                      >
+                        VIEW ALL INTAKE CORRESPONDENCE
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="text-right sm:block hidden">
               <span className="px-2 py-0.5 rounded text-[9px] uppercase tracking-wider font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
                 SECURE CONSOLE SHELL
