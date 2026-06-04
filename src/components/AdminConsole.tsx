@@ -70,11 +70,13 @@ export const AdminConsole: React.FC = () => {
     updateClient,
     toggleClientStatus,
     deleteClient,
+    addPlan,
     saveProject,
     deleteProject,
     addDeliverable,
     addMessage,
     markMessageRead,
+    setMessageReadStatus,
     replyToMessage,
     addInvoice,
     deleteInvoice,
@@ -551,9 +553,8 @@ export const AdminConsole: React.FC = () => {
       popular: newPlanPopular
     };
 
-    // Save plans list
-    plans.push(created);
-    localStorage.setItem('diyo_plans', JSON.stringify(plans));
+    // Save plans list via firestore context
+    addPlan(created);
     setShowAddPlanModal(false);
     triggerToast(`New configuration tier "${newPlanName}" published successfully!`);
 
@@ -2309,11 +2310,7 @@ export const AdminConsole: React.FC = () => {
                                         markMessageRead(msg.id);
                                         triggerToast(`Marked inquiry from "${msg.senderName}" as read.`);
                                       } else {
-                                        // Simple toggling helper in local context
-                                        const updatedMessages = messages.map(m => m.id === msg.id ? { ...m, unread: true } : m);
-                                        localStorage.setItem('diyo_messages', JSON.stringify(updatedMessages));
-                                        // Dispatch local storage event to sync components
-                                        window.dispatchEvent(new Event('storage'));
+                                        setMessageReadStatus(msg.id, true);
                                         triggerToast(`Marked inquiry from "${msg.senderName}" as unread.`);
                                       }
                                     }}

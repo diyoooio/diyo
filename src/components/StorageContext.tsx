@@ -197,6 +197,9 @@ interface StorageContextType {
   toggleClientStatus: (id: string) => void;
   deleteClient: (id: string) => void;
 
+  // Pricing plans
+  addPlan: (plan: PricingPlan) => void;
+
   // Project Deliverables & Pipeline
   saveProject: (project: Project) => void;
   deleteProject: (id: string) => void;
@@ -205,6 +208,7 @@ interface StorageContextType {
   // Correspondence messaging
   addMessage: (name: string, email: string, text: string, role?: string, isClientMessage?: boolean) => void;
   markMessageRead: (id: string) => void;
+  setMessageReadStatus: (id: string, unread: boolean) => void;
   replyToMessage: (id: string, text: string) => void;
 
   // Financial system
@@ -692,6 +696,12 @@ export const StorageProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // CLIENT DIRECT MANAGEMENT (ADMIN PANEL)
   // ==========================================
 
+  const addPlan = (plan: PricingPlan) => {
+    setDoc(doc(db, 'plans', plan.name), plan)
+      .then(() => logActivity(`Pricing Plan tier added: "${plan.name}"`, 'rocket_launch'))
+      .catch(err => handleFirestoreError(err, OperationType.WRITE, `plans/${plan.name}`));
+  };
+
   const addClientDirect = (client: Client) => {
     setDoc(doc(db, 'clients', client.id), client)
       .then(() => logActivity(`Direct Client Created: "${client.name}"`, 'user'))
@@ -798,6 +808,15 @@ export const StorageProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!msg) return;
 
     setDoc(doc(db, 'messages', id), { ...msg, unread: false }).catch(err => 
+      handleFirestoreError(err, OperationType.WRITE, `messages/${id}`)
+    );
+  };
+
+  const setMessageReadStatus = (id: string, unread: boolean) => {
+    const msg = messages.find(m => m.id === id);
+    if (!msg) return;
+
+    setDoc(doc(db, 'messages', id), { ...msg, unread }).catch(err => 
       handleFirestoreError(err, OperationType.WRITE, `messages/${id}`)
     );
   };
@@ -975,12 +994,15 @@ export const StorageProvider: React.FC<{ children: React.ReactNode }> = ({ child
       toggleClientStatus,
       deleteClient,
 
+      addPlan,
+
       saveProject,
       deleteProject,
       addDeliverable,
 
       addMessage,
       markMessageRead,
+      setMessageReadStatus,
       replyToMessage,
 
       addInvoice,
