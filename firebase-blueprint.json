@@ -1,0 +1,143 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Authenticated user profiles (admins or clients)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique user authentication ID" },
+        "name": { "type": "string", "description": "Display name of the user" },
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "role": { "type": "string", "enum": ["admin", "client"], "description": "System role" },
+        "joinedAt": { "type": "string", "format": "date-time", "description": "Timestamp of profile creation" }
+      },
+      "required": ["id", "name", "email", "role", "joinedAt"]
+    },
+    "Client": {
+      "title": "Client Account",
+      "description": "Details about active or suspended collaborators on diyo",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique Client ID matching user ID" },
+        "name": { "type": "string", "description": "Full legal or company name of the client" },
+        "email": { "type": "string", "format": "email", "description": "Primary communication email" },
+        "avatar": { "type": "string", "description": "Profile picture URL or visual avatar key" },
+        "status": { "type": "string", "enum": ["Active", "Suspended"], "description": "Account operation state" },
+        "projectId": { "type": "string", "description": "ID of the primary linked project" },
+        "projectName": { "type": "string", "description": "Name of the linked project" },
+        "plan": { "type": "string", "description": "Subscribed package plan name" },
+        "joinedAt": { "type": "string", "format": "date-time", "description": "Collaboration start time" }
+      },
+      "required": ["id", "name", "email", "avatar", "status", "joinedAt"]
+    },
+    "Project": {
+      "title": "Project Deliverables Pipeline",
+      "description": "Comprehensive tracking of deliverables and build stages",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique project pipeline key" },
+        "name": { "type": "string", "description": "Project title" },
+        "client": { "type": "string", "description": "Associated client display name" },
+        "clientEmail": { "type": "string", "format": "email", "description": "Associated client secure email" },
+        "description": { "type": "string", "description": "Detailed venture scope" },
+        "progress": { "type": "integer", "description": "Integer percentage of completion from 0 to 100" },
+        "status": { "type": "string", "enum": ["In Progress", "Research", "Testing", "Completed"], "description": "Pipeline phase state" },
+        "prefix": { "type": "string", "description": "Short code prefix for project identifiers" },
+        "deadline": { "type": "string", "format": "date", "description": "Delivery milestone date" }
+      },
+      "required": ["id", "name", "client", "progress", "status", "prefix"]
+    },
+    "Message": {
+      "title": "Correspondence Message",
+      "description": "Real-time chat correspondence and enquiry records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique transmission ID" },
+        "senderName": { "type": "string", "description": "Name of the message sender" },
+        "senderAvatar": { "type": "string", "description": "Optional sender avatar thumbnail url" },
+        "senderRole": { "type": "string", "description": "Role label of the sender" },
+        "previewText": { "type": "string", "description": "Raw message text content" },
+        "relativeTime": { "type": "string", "description": "User readable creation text" },
+        "email": { "type": "string", "format": "email", "description": "Email address for replies" },
+        "unread": { "type": "boolean", "description": "Read confirmation flag" },
+        "isClientMessage": { "type": "boolean", "description": "Indicates if sent by client to support" }
+      },
+      "required": ["id", "senderName", "previewText", "email", "unread"]
+    },
+    "Ticket": {
+      "title": "Collaboration Ticket",
+      "description": "Support tickets for system modifications and assistance",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique support ticket identifier" },
+        "title": { "type": "string", "description": "Title of the issue or feature request" },
+        "clientEmail": { "type": "string", "format": "email", "description": "Creator email" },
+        "status": { "type": "string", "enum": ["Open", "In Progress", "Closed"], "description": "Ticket lifecycle status" },
+        "severity": { "type": "string", "enum": ["High", "Medium", "Low"], "description": "Urgency classification" },
+        "description": { "type": "string", "description": "Explanation of assistance needed" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when support requested" }
+      },
+      "required": ["id", "title", "clientEmail", "status", "severity", "description", "createdAt"]
+    },
+    "Invoice": {
+      "title": "Service Billing Invoice",
+      "description": "Invoicing tracking details for project phases",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique billing key ID" },
+        "title": { "type": "string", "description": "Description of the billed milestones" },
+        "amount": { "type": "string", "description": "Numeric and currency formatted string (e.g. NPR 25,000)" },
+        "clientEmail": { "type": "string", "format": "email", "description": "Billed party email coordinate" },
+        "status": { "type": "string", "enum": ["Paid", "Unpaid"], "description": "Payment receipt status" },
+        "dueDate": { "type": "string", "format": "date", "description": "Payment final timeline date" }
+      },
+      "required": ["id", "title", "amount", "clientEmail", "status", "dueDate"]
+    },
+    "Invitation": {
+      "title": "Secure Client Invitation",
+      "description": "Protected invitation schema that grants dashboard access on registration",
+      "type": "object",
+      "properties": {
+        "invitationCode": { "type": "string", "description": "Cryptographically secure access code token" },
+        "email": { "type": "string", "format": "email", "description": "Allowed register email coordinate" },
+        "projectId": { "type": "string", "description": "ID of pre-assigned software project" },
+        "projectName": { "type": "string", "description": "Name of pre-assigned software project" },
+        "plan": { "type": "string", "description": "Curated workspace plan (e.g. Premium)" },
+        "status": { "type": "string", "enum": ["Pending", "Accepted", "Expired", "Revoked"], "description": "Ticket validation status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of invitation creation" },
+        "expiresAt": { "type": "string", "format": "date-time", "description": "Security expiration date of code" }
+      },
+      "required": ["invitationCode", "email", "plan", "status", "createdAt", "expiresAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Master user authentication profiles"
+    },
+    "clients/{clientId}": {
+      "schema": "Client",
+      "description": "Detailed client profiles, maps directly to user ID"
+    },
+    "projects/{projectId}": {
+      "schema": "Project",
+      "description": "Curated deliverables and project pipeline states"
+    },
+    "messages/{messageId}": {
+      "schema": "Message",
+      "description": "Direct communication chat streams"
+    },
+    "tickets/{ticketId}": {
+      "schema": "Ticket",
+      "description": "Secure support tickets opened by clients"
+    },
+    "invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "Billing records assigned to individual client email coordinates"
+    },
+    "invitations/{invitationId}": {
+      "schema": "Invitation",
+      "description": "Single-use invitations generated by system administrators"
+    }
+  }
+}

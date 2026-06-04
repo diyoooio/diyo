@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Diyo Pricing Options Manager",
+  "description": "Interactive agency landing experience with a 3D flame effect and a comprehensive, secure back-office admin dashboard to manage project states, pricing plans, and client intake messages.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

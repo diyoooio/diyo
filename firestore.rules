@@ -1,0 +1,194 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global safety net - Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ==========================================
+    // GLOBAL SECURITY HELPERS & PRIMITIVES
+    // ==========================================
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && (
+        request.auth.token.email_verified == true || 
+        request.auth.token.firebase.sign_in_provider == 'password' // or let pass if password
+      );
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        getUserData().role == 'admin';
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // ID verification rule
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // ==========================================
+    // ENTITY VALIDATORS (THE SCHEMA BLUEPRINTS)
+    // ==========================================
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'name', 'email', 'role', 'joinedAt']) &&
+             data.keys().size() == 5 &&
+             data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() <= 100 &&
+             data.email is string && data.email.size() <= 120 &&
+             data.role in ['admin', 'client'] &&
+             data.joinedAt is timestamp;
+    }
+
+    function isValidClient(data) {
+      return data.keys().hasAll(['id', 'name', 'email', 'avatar', 'status', 'joinedAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() <= 100 &&
+             data.email is string && data.email.size() <= 120 &&
+             data.status in ['Active', 'Suspended'] &&
+             data.joinedAt is timestamp;
+    }
+
+    function isValidProject(data) {
+      return data.keys().hasAll(['id', 'name', 'client', 'progress', 'status', 'prefix']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() <= 100 &&
+             data.client is string && data.client.size() <= 100 &&
+             data.progress is int && data.progress >= 0 && data.progress <= 100 &&
+             data.status in ['In Progress', 'Research', 'Testing', 'Completed'] &&
+             data.prefix is string && data.prefix.size() <= 10;
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll(['id', 'senderName', 'previewText', 'email', 'unread']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.senderName is string && data.senderName.size() <= 100 &&
+             data.previewText is string && data.previewText.size() <= 2000 &&
+             data.email is string && data.email.size() <= 120 &&
+             data.unread is bool;
+    }
+
+    function isValidTicket(data) {
+      return data.keys().hasAll(['id', 'title', 'clientEmail', 'status', 'severity', 'description', 'createdAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.title is string && data.title.size() <= 120 &&
+             data.clientEmail is string && data.clientEmail.size() <= 120 &&
+             data.status in ['Open', 'In Progress', 'Closed'] &&
+             data.severity in ['High', 'Medium', 'Low'] &&
+             data.description is string && data.description.size() <= 5000 &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidInvoice(data) {
+      return data.keys().hasAll(['id', 'title', 'amount', 'clientEmail', 'status', 'dueDate']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.title is string && data.title.size() <= 120 &&
+             data.amount is string && data.amount.size() <= 50 &&
+             data.clientEmail is string && data.clientEmail.size() <= 120 &&
+             data.status in ['Paid', 'Unpaid'] &&
+             data.dueDate is timestamp;
+    }
+
+    function isValidInvitation(data) {
+      return data.keys().hasAll(['invitationCode', 'email', 'plan', 'status', 'createdAt', 'expiresAt']) &&
+             data.invitationCode is string && data.invitationCode.size() <= 50 &&
+             data.email is string && data.email.size() <= 120 &&
+             data.plan is string && data.plan.size() <= 50 &&
+             data.status in ['Pending', 'Accepted', 'Expired', 'Revoked'] &&
+             data.createdAt is timestamp &&
+             data.expiresAt is timestamp;
+    }
+
+    // ==========================================
+    // ROUTE PROTECTION RULES
+    // ==========================================
+
+    // Users Collection
+    match /users/{userId} {
+      allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && isValidId(userId) && isOwner(userId) && isValidUser(incoming());
+      allow update: if isSignedIn() && isOwner(userId) && isValidUser(incoming()) && 
+                    incoming().role == existing().role; // Block self-assigned Admin privilege escalation!
+      allow delete: if isAdmin();
+    }
+
+    // Clients Collection
+    match /clients/{clientId} {
+      allow get: if isSignedIn() && (isOwner(clientId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if (isAdmin() || (isSignedIn() && isOwner(clientId))) && isValidId(clientId) && isValidClient(incoming());
+      allow update: if isAdmin() && isValidClient(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Projects Collection
+    match /projects/{projectId} {
+      allow get: if isSignedIn() && (isAdmin() || (resource.data.clientEmail == request.auth.token.email));
+      allow list: if isSignedIn() && (isAdmin() || (resource.data.clientEmail == request.auth.token.email));
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() && isValidProject(incoming());
+    }
+
+    // Messages Collection
+    match /messages/{messageId} {
+      allow get, write: if isAdmin();
+      allow list: if isSignedIn() && (isAdmin() || (resource.data.email == request.auth.token.email));
+      allow create: if isValidMessage(incoming()); // Open landing submissions permitted
+    }
+
+    // Tickets Collection
+    match /tickets/{ticketId} {
+      allow get: if isSignedIn() && (isAdmin() || (resource.data.clientEmail == request.auth.token.email));
+      allow list: if isSignedIn() && (isAdmin() || (resource.data.clientEmail == request.auth.token.email));
+      allow create: if isSignedIn() && isValidTicket(incoming()) && incoming().clientEmail == request.auth.token.email;
+      allow update: if isSignedIn() && (
+                      isAdmin() || 
+                      (resource.data.clientEmail == request.auth.token.email && 
+                       incoming().diff(existing()).affectedKeys().hasOnly(['status', 'description']))
+                    ) && isValidTicket(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Invoices Collection
+    match /invoices/{invoiceId} {
+      allow get, list: if isSignedIn() && (isAdmin() || (resource.data.clientEmail == request.auth.token.email));
+      allow create, update, delete: if isAdmin() && isValidInvoice(incoming());
+    }
+
+    // Invitations Collection
+    match /invitations/{invitationId} {
+      allow get: if true; // Public access to check validity initially before logging/registration
+      allow list, create, delete: if isAdmin();
+      allow update: if (isAdmin() || (
+                      // Single-use acceptance flow
+                      existing().status == 'Pending' && 
+                      incoming().status == 'Accepted' && 
+                      incoming().diff(existing()).affectedKeys().hasOnly(['status'])
+                    )) && isValidInvitation(incoming());
+    }
+  }
+}

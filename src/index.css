@@ -1,0 +1,100 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-background: #0f131d;
+  --color-bg-deep: #0a0e18;
+  --color-primary: #ffb68e;
+  --color-primary-container: #ff7a18;
+  --color-secondary: #edc157;
+  --color-tertiary: #8bceff;
+  --color-error: #ffb4ab;
+  --color-outline: #a78b7d;
+  
+  --color-surface-container-lowest: #0a0e18;
+  --color-surface-container-low: #171b26;
+  --color-surface-container: #1c1f2a;
+  --color-surface-container-high: #262a35;
+  --color-surface-container-highest: #313540;
+}
+
+@layer base {
+  body {
+    background-color: #0a0e18;
+    color: #dfe2f1;
+    font-family: var(--font-sans);
+  }
+}
+
+/* Custom functional styles for diyo high-fidelity aesthetics */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.inner-glow-orange {
+  box-shadow: inset 0 0 10px rgba(255, 122, 24, 0.1);
+}
+
+.glow-button:hover {
+  box-shadow: 0 0 20px rgba(255, 122, 24, 0.4);
+}
+
+.glow-orange {
+  box-shadow: 0px 10px 40px rgba(255, 122, 24, 0.08);
+}
+
+.orange-gradient-text {
+  background: linear-gradient(135deg, #ffb68e, #ff7a18);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.primary-glow-hover:hover {
+  box-shadow: 0 0 20px rgba(255, 122, 24, 0.45);
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0e18;
+}
+::-webkit-scrollbar-thumb {
+  background: #262a35;
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ff7a18;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+    filter: drop-shadow(0 0 4px rgba(255, 122, 24, 0.4));
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+    filter: drop-shadow(0 0 14px rgba(255, 122, 24, 0.75));
+  }
+}
+
+.pulse-flame {
+  animation: pulse-glow 3s infinite ease-in-out;
+}
+
+/* Ambient gradient style */
+.mesh-gradient {
+  background: 
+    radial-gradient(circle at 10% 20%, rgba(255, 122, 24, 0.07) 0%, transparent 45%),
+    radial-gradient(circle at 90% 80%, rgba(237, 193, 87, 0.04) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(139, 206, 255, 0.03) 0%, transparent 60%);
+}
